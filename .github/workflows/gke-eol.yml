@@ -22,7 +22,7 @@ jobs:
         }
         chmod +x ./gcpdiag/lint/gke/eol_parser.sh
         bash gcpdiag/lint/gke/eol_parser.sh > gcpdiag/lint/gke/eol.yaml
-        trap 'handle_diff $?' ERR
+        trap 'handle_diff $?' EXIT
         git diff --exit-code gcpdiag/lint/gke/eol.yaml > /dev/null
     - name: Create Pull Request
       if: env.CHANGES_FOUND == 1
