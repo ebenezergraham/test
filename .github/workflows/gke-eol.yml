@@ -14,6 +14,7 @@ jobs:
 
     - name: Run the eol script
       run: |
+        chmod +x ./gcpdiag/lint/gke/eol_parser.sh
         if ! ./gcpdiag/lint/gke/eol_parser.sh | diff - gcpdiag/lint/gke/eol.yaml > /dev/null
         then
           echo "CHANGES_FOUND=$?" >> $GITHUB_ENV
