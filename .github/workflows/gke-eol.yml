@@ -15,8 +15,9 @@ jobs:
     - name: Run the eol script
       run: |
         sh ./bin/precommit-gke-eol-file.sh
+        if [ $? -eq 1 ]; then
         echo "CHANGES_FOUND=$?" >> $GITHUB_ENV
-
+        fi
     - name: Create Pull Request
       if: env.CHANGES_FOUND == 1
       id: create-pull-request
