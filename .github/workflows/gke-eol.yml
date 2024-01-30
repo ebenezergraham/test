@@ -1,0 +1,39 @@
+name: Automate GKE EOL changes
+
+on:
+  schedule:
+    # Runs at midnight UTC every day
+    - cron: '0 0 * * *'
+
+jobs:
+  build-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Run the eol script
+      run: |
+        sh ./bin/precommit-gke-eol-file.sh
+        echo "CHANGES_FOUND=$?" >> $GITHUB_ENV
+
+    - name: Create Pull Request
+      if: env.CHANGES_FOUND == 1
+      id: create-pull-request
+      uses: peter-evans/create-pull-request@v5.0.2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: gke/eol update
+        title: 'gke/eol update'
+        body: 'Updating gke/eol update with the new eol for GKE clusters'
+        branch: 'automated-gke-eol-changes'
+        delete-branch: true
+        base: 'main'
+
+    - name: Auto-merge
+      if: env.CHANGES_FOUND == 1
+      uses: pascalgn/automerge-action@v0.16.2
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        pull-request: "${{ steps.create-pull-request.outputs.pull-request-url }}"
+        merge-method: 'rebase'
