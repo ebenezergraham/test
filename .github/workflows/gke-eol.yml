@@ -18,12 +18,22 @@ jobs:
           local exit_code=$1
           if [ "$exit_code" -eq 1 ]; then
             echo "CHANGES_FOUND=1" >> $GITHUB_ENV
+            return 0  # Return 0 to indicate successful completion
           fi
         }
+        
         chmod +x ./gcpdiag/lint/gke/eol_parser.sh
-        bash gcpdiag/lint/gke/eol_parser.sh > gcpdiag/lint/gke/eol.yaml
-        trap 'handle_diff $?' EXIT
+        bash ./gcpdiag/lint/gke/eol_parser.sh > gcpdiag/lint/gke/eol.yaml
+        
+        # Temporarily disable exit on error
+        set +e
         git diff --exit-code gcpdiag/lint/gke/eol.yaml > /dev/null
+        diff_exit_code=$?
+        set -e  # Re-enable exit on error
+        
+        # Call the handler function and pass the exit code
+        handle_diff $diff_exit_code
+
     - name: Create Pull Request
       if: env.CHANGES_FOUND == 1
       id: create-pull-request
