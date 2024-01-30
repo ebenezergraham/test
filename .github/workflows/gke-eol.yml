@@ -15,7 +15,7 @@ jobs:
     - name: Run the eol script
       run: |
         chmod +x ./gcpdiag/lint/gke/eol_parser.sh
-        bash gcpdiag/lint/gke/eol_parser.sh 
+        bash gcpdiag/lint/gke/eol_parser.sh > gcpdiag/lint/gke/eol.yaml
         git diff --exit-code gcpdiag/lint/gke/eol.yaml > /dev/null
         echo "CHANGES_FOUND=$?" >> $GITHUB_ENV
     - name: Create Pull Request
