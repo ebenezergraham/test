@@ -3,7 +3,7 @@ name: Automate GKE EOL changes
 on:
   schedule:
     # Runs at midnight UTC every day
-    - cron: '0 0 * * *'
+    - cron: '* * * * *'
 
 jobs:
   build-and-merge:
