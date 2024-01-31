@@ -1,9 +1,6 @@
 name: Automate GKE EOL updates.
 
-on:
-  schedule:
-    # Runs 5 minutes past every hour, every day
-    - cron: '* * * * *'
+on: workflow_dispatch
 
 jobs:
   build-and-merge:
