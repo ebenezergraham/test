@@ -53,10 +53,3 @@ jobs:
         gh pr merge "${{ env.PR_URL }}" --rebase --auto
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Clean up
-      run: |
-        # Merge the created pull request
-        gh pr merge "${{ env.PR_URL }}" --rebase --auto
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
