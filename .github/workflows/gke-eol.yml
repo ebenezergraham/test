@@ -36,20 +36,24 @@ jobs:
       if: success() && steps.commit_changes.outcome == 'success'
       id: create_pull_request
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Create a pull request for the changes
-        PR_URL=$(gh pr create --title "Update gke/eol.yaml files" \
-                              --body "Updating gke/eol update with the new eol for GKE clusters" \
-                              --base main \
-                              --head automated-gke-eol-changes \
-                              --label "automerge" --repo ${{ github.repository }} --web)
+        gh pr create --title "Update gke/eol.yaml files" \
+                     --body "Updating gke/eol update with the new eol for GKE clusters" \
+                     --base main \
+                     --head automated-gke-eol-changes \
+                     --label "automerge"
         echo "PR_URL=${PR_URL}" >> $GITHUB_ENV  # Save the PR URL for later steps
 
     - name: Merge Pull Request
       if: success() && steps.create_pull_request.outcome == 'success'
       run: |
-        # Merge the created pull request
-        gh pr merge "${{ env.PR_URL }}" --rebase --auto
+        # Retrieve the URL of the newly created pull request.
+        PR_URL=$(gh pr list --base main --head automated-gke-eol-changes --json url --jq '.[0].url')
+        # If a pull request URL is found, attempt to merge it.
+        if [ -n "$PR_URL" ]; then
+          gh pr merge "$PR_URL" --rebase --auto
+        fi
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
