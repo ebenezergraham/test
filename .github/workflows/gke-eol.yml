@@ -33,9 +33,8 @@ jobs:
         git commit -m "Update gke/eol.yaml file"
         git push origin HEAD:automated-gke-eol-changes  # Push the changes to a branch
 
-
     - name: Create Pull Request
-      if: steps.commit_changes.outcome == 'success'
+      if: success() && steps.commit_changes.outcome == 'success'
       id: create_pull_request
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,7 +47,7 @@ jobs:
                      --label "automerge"
 
     - name: Merge Pull Request
-      if: steps.create_pull_request.outcome == 'success'
+      if: success() && steps.create_pull_request.outcome == 'success'
       run: |
         # Retrieve the URL of the newly created pull request.
         PR_URL=$(gh pr list --base main --head automated-gke-eol-changes --json url --jq '.[0].url')
