@@ -31,11 +31,12 @@ jobs:
         git config --global user.email 'actions@github.com'
         git add gcpdiag/lint/gke/eol.yaml
         git commit -m "gke/eol update"
-        git push origin HEAD:automated-gke-eol-changes  # Push the changes to a branch
 
     - name: Create Pull Request
       if: success() && steps.commit_changes.outcome == 'success'
       id: create_pull_request
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Create a pull request for the changes
         PR_URL=$(gh pr create --title "Update gke/eol.yaml files" \
@@ -51,4 +52,11 @@ jobs:
         # Merge the created pull request
         gh pr merge "${{ env.PR_URL }}" --rebase --auto
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Clean up
+      run: |
+        # Merge the created pull request
+        gh pr merge "${{ env.PR_URL }}" --rebase --auto
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
