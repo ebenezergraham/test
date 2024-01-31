@@ -1,9 +1,9 @@
-name: Automate GKE EOL changes.
+name: Automate GKE EOL updates.
 
 on:
   schedule:
-    # Runs at midnight UTC every day
-    - cron: '* * * * *'
+    # Runs 5 minutes past every hour, every day
+    - cron: '5 * * * *'
 
 jobs:
   build-and-merge:
@@ -11,49 +11,47 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Ensure all history is fetched for accurate diff
 
     - name: Run the eol script
       run: |
-        handle_diff() {
-          local exit_code=$1
-          if [ "$exit_code" -eq 1 ]; then
-            echo "CHANGES_FOUND=1" >> $GITHUB_ENV
-            return 0  # Return 0 to indicate successful completion
-          fi
-        }
-        
+        # Make the EOL parser script executable and run it
         chmod +x ./gcpdiag/lint/gke/eol_parser.sh
         bash ./gcpdiag/lint/gke/eol_parser.sh > gcpdiag/lint/gke/eol.yaml
-        
-        # Temporarily disable exit on error
-        set +e
-        git diff --exit-code gcpdiag/lint/gke/eol.yaml > /dev/null
-        diff_exit_code=$?
-        set -e  # Re-enable exit on error
-        
-        # Call the handler function and pass the exit code
-        handle_diff $diff_exit_code
+
+        # Check for changes in the EOL YAML file
+        if ! git diff --exit-code gcpdiag/lint/gke/eol.yaml > /dev/null; then
+          echo "NEW_EOL_UPDATE=true" >> $GITHUB_ENV  # Mark that new EOL updates are available
+        fi
+
+    - name: Commit changes
+      if: env.NEW_EOL_UPDATE == 'true'
+      id: commit_changes
+      run: |
+        # Set Git config and commit changes if any
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add gcpdiag/lint/gke/eol.yaml
+        git commit -m "gke/eol update"
+        git push origin HEAD:automated-gke-eol-changes  # Push the changes to a branch
 
     - name: Create Pull Request
-      if: env.CHANGES_FOUND == 1
-      id: create-pull-request
-      uses: peter-evans/create-pull-request@v5.0.2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: gke/eol update
-        title: 'gke/eol update'
-        body: 'Updating gke/eol update with the new eol for GKE clusters'
-        branch: 'automated-gke-eol-changes'
-        delete-branch: true
-        base: 'main'
-        labels: 'automerge'
+      if: success() && steps.commit_changes.outcome == 'success'
+      id: create_pull_request
+      run: |
+        # Create a pull request for the changes
+        PR_URL=$(gh pr create --title "Update gke/eol.yaml files" \
+                              --body "Updating gke/eol update with the new eol for GKE clusters" \
+                              --base main \
+                              --head automated-gke-eol-changes \
+                              --label "automerge" --repo ${{ github.repository }} --web)
+        echo "PR_URL=${PR_URL}" >> $GITHUB_ENV  # Save the PR URL for later steps
 
-    - name: Auto-merge
-      if: env.CHANGES_FOUND == 1
-      uses: pascalgn/automerge-action@v0.16.2
+    - name: Merge Pull Request
+      if: success() && steps.create_pull_request.outcome == 'success'
+      run: |
+        # Merge the created pull request
+        gh pr merge "${{ env.PR_URL }}" --rebase --auto
       env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      with:
-        pull-request: "${{ steps.create-pull-request.outputs.pull-request-url }}"
-        merge-method: 'rebase'
-        
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
