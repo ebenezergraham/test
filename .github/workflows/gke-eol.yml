@@ -46,6 +46,7 @@ jobs:
         branch: 'automated-gke-eol-changes'
         delete-branch: true
         base: 'main'
+        labels: 'automerge'
 
     - name: Auto-merge
       if: env.CHANGES_FOUND == 1
